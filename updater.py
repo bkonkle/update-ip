@@ -3,40 +3,64 @@ from __future__ import with_statement
 import sys
 import os
 import urllib2
-import tempfile
 import socket
 from datetime import datetime
-from optparse import OptionParser
 
-def main():
-    # Parse command line options
-    parser = OptionParser()
-    parser.add_option(
-        "-d", "--domains",
-        dest="domains",
-        help="Designate specific domains to update, separated by commas",
-        metavar="DOMAINS")
-    parser.add_option(
-        "-f", "--file",
-        dest="ip_file",
-        defaukt=os.path.join(tempfile.tempdir, 'public_ip'),
-        help="Designate the local file used to store your current IP address",
-        metavar="FILE")
-    parser.add_option(
-        "-q", "--quiet",
-        action="store_true",
-        dest="quiet",
-        default=False,
-        help="Hide all status messages")
-    (options, args) = parser.parse_args()
+from update_ip.services.webfaction import WebFactionService
+
+class AlreadyRegisteredError(Exception):
+    pass
+
+class NotRegisteredError(Exception):
+    pass
+
+class InvalidServiceError(Exception):
+    pass
+
+class InvalidIPError(Exception):
+    pass
     
-    # Run the update with the options provided
-    updater = IPUpdater(service, options.get('ip_file'), options.get('quiet'))
-    updater.update(options.get('domains'))
+# Global dict used by register. Maps custom services to callback classes.
+registered_services = {}
+
+def register(service):
+    if service.name.lower in registered_services.keys():
+        raise AlreadyRegisteredError('%s is already registered.' %
+                                     service.name)
+    registered_services[service.name.lower] = service
+
+def unregister(service_name):
+    if not service_name.lower in registered_services.keys():
+        raise NotRegisteredError('%s is not registered.' % service_name)
+    del registered_services[service_name.lower]
+
+def get_service(service_name):
+    if not service_name.lower in registered_services.keys():
+        raise NotRegisteredError('%s is not registered.' % service_name)
+    return registered_services[service_name.lower]
+
+def get_list():
+    """
+    Returns a list of registered services.
+    """
+    return registered_services.keys()
+
+def get_all():
+    """
+    Returns the registered_services dict.
+    """
+    return registered_services
+
+# Register the built-in services
+register(WebFactionService)
 
 class IPUpdater(object):
     def __init__(self, service, ip_file=None, quiet=False):
-        # TODO: Validate the DNS service provided
+        if not getattr(service, 'name'):
+            raise InvalidServiceError('Please provide a valid service to use '
+                                      'for updating the domains.')
+        if not service.name in get_list():
+            raise NotRegisteredError('%s is not registered.' % service.name)
         self.service = service
         self.ip_file = ip_file
         self.quiet = quiet
@@ -81,9 +105,8 @@ class IPUpdater(object):
         # Get the public IP and compare it to the previous IP, if provided
         pub_ip = self.get_public_ip()
         if not self.validate_ip(pub_ip):
-            sys.stderr.write('Invalid address returned by IP service: %s' %
-                             pub_ip)
-            sys.exit(1)
+            raise InvalidIPError('Invalid address returned by IP service: %s'
+                                 % pub_ip)
         if pub_ip == prev_ip:
             return False
         if return_new_ip:
@@ -123,6 +146,3 @@ class IPUpdater(object):
                 self.service.update(domain, pub_ip)
             
         self.status_update('Public IP has not changed.')
-
-if __name__ == '__main__':
-    main()

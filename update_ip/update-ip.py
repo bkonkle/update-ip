@@ -24,6 +24,11 @@ def main():
         help="Designate the local file used to store your current IP address",
         metavar="FILE")
     parser.add_option(
+        "-c", "--clear",
+        action="store_true",
+        dest="clear",
+        help="Clear the currently stored IP address.")
+    parser.add_option(
         "-u", "--username",
         dest="username",
         default=None,
@@ -44,7 +49,7 @@ def main():
     (options, args) = parser.parse_args()
     
     if not args:
-        sys.stderr.write('Please provide a service name to use for the'
+        sys.stderr.write('Please provide a service name to use for the '
                          'update.\n')
         sys.exit(1)
     
@@ -54,17 +59,19 @@ def main():
                          'from: %s\n' % ','.join(updater.get_list()))
         sys.exit(1)
     
-    service_class = updater.get_service()
-    service = service_class(options.get('username'), options.get('password'))
+    if options.domains:
+        options.domains = options.domains.split(',')
+    
+    service_class = updater.get_service(args[0])
+    service = service_class(options.username, options.password)
     
     # Run the update with the options provided
     try:
-        ip_updater = updater.IPUpdater(service,
-                                       options.get('ip_file'),
-                                       options.get('quiet'))
-        ip_updater.update(options.get('domains'))
-    except updater.InvalidIPError, e:
-        sys.stderr.write(e)
+        ip_updater = updater.IPUpdater(service, options.ip_file,
+                                       options.quiet)
+        ip_updater.update(options.domains, clear=options.clear)
+    except (updater.InvalidIPError, ValueError) as e:
+        sys.stderr.write('Error: %s\n' % str(e))
         sys.exit(1)
 
 if __name__ == '__main__':

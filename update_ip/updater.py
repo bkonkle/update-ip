@@ -24,20 +24,20 @@ class InvalidIPError(Exception):
 registered_services = {}
 
 def register(service):
-    if service.name.lower in registered_services.keys():
+    if service.name.lower() in registered_services.keys():
         raise AlreadyRegisteredError('%s is already registered.' %
                                      service.name)
-    registered_services[service.name.lower] = service
+    registered_services[service.name.lower()] = service
 
 def unregister(service_name):
-    if not service_name.lower in registered_services.keys():
+    if not service_name.lower() in registered_services.keys():
         raise NotRegisteredError('%s is not registered.' % service_name)
-    del registered_services[service_name.lower]
+    del registered_services[service_name.lower()]
 
 def get_service(service_name):
-    if not service_name.lower in registered_services.keys():
+    if not service_name.lower() in registered_services.keys():
         raise NotRegisteredError('%s is not registered.' % service_name)
-    return registered_services[service_name.lower]
+    return registered_services[service_name.lower()]
 
 def get_list():
     """
@@ -59,77 +59,42 @@ class IPUpdater(object):
         if not getattr(service, 'name'):
             raise InvalidServiceError('Please provide a valid service to use '
                                       'for updating the domains.')
-        if not service.name in get_list():
+        if not service.name.lower() in get_list():
             raise NotRegisteredError('%s is not registered.' % service.name)
         self.service = service
         self.ip_file = ip_file
         self.quiet = quiet
     
-    def status_update(self, message):
+    def update(self, domains=None, clear=False):
         """
-        If not silenced, print a status message prefixed by the current date
-        and time.
+        Check to see if the public IP address has changed. If so, update the
+        IP for the requested domains on the selected DNS service. Send status
+        update messages for use in logging.
         """
-        now = datetime.now()
-        now = now.strftime('%m/%d/%Y - %I:%M %p')
-        if not self.quiet:
-            print '%s: %s' % (now)
-    
-    def validate_ip(self, ip):
-        """
-        Use the socket library to validate the supplied IP. Return True if
-        valid, False if not.
-        """
-        try:
-            socket.inet_aton(ip)
-        except socket.error:
-            return False
-        return True
-    
-    def check(self, prev_ip=None, return_new_ip=False):
-        """
-        Check to see if the current public IP has changed. Return true if
-        changed, and False if not. Alternatively, if return_new_ip is passed
-        as True, return the new public IP if changed.
-        """
-        if not prev_ip:
-            if os.path.exists(self.ip_file):
-                # Try to read the previous IP address
-                with open(self.ip_file) as f:
-                    prev_ip = f.read(f.read())
-                    if not self.validate_ip(prev_ip):
-                        sys.stderr.write('Invalid address found in %s' %
-                                         self.ip_file)
-                        sys.exit(1)
+        if clear:
+            self.clear_stored_ip()
+        
+        prev_ip = self.read_stored_ip()
         
         # Get the public IP and compare it to the previous IP, if provided
         pub_ip = self.get_public_ip()
         if not self.validate_ip(pub_ip):
             raise InvalidIPError('Invalid address returned by IP service: %s'
                                  % pub_ip)
-        if pub_ip == prev_ip:
-            return False
-        if return_new_ip:
-            return pub_ip
-        return True
-    
-    def get_public_ip(self):
-        """Grab the current public IP."""
-        pub_ip = urllib2.urlopen(
-            "http://whatismyip.com/automation/n09230945.asp"
-        )
-        return pub_ip.read()
-    
-    def update(self, prev_ip=None, domains=None):
-        """
-        Check to see if the public IP address has changed. If so, update the
-        IP for the requested domains on the selected DNS service. Send status
-        update messages for use in logging.
-        """
-        pub_ip = self.check(prev_ip, return_new_ip=True)
-        if pub_ip:
+        if prev_ip and pub_ip == prev_ip:
+            self.status_update('Public IP has not changed.')
+            return
+        else:
             self.status_update('Public IP has changed, updating %s.' %
                                self.service.name)
+            
+            # If no previous IP is found, then automatic domain detection will
+            # fail.
+            if not prev_ip and not domains:
+                raise ValueError('No previous IP was found, and no domain '
+                                 'names were provided. Automatic domain '
+                                 'detection only works with a valid previous '
+                                 'IP.')
             
             # Update the ip_file
             with open(self.ip_file, 'w') as f:
@@ -144,5 +109,47 @@ class IPUpdater(object):
             for domain in domains:
                 self.status_update('\tUpdating %s to %s.' % (domain, pub_ip))
                 self.service.update(domain, pub_ip)
-            
-        self.status_update('Public IP has not changed.')
+    
+    def status_update(self, message):
+        """
+        If not silenced, print a status message prefixed by the current date
+        and time.
+        """
+        now = datetime.now()
+        now = now.strftime('%m/%d/%Y - %I:%M %p')
+        if not self.quiet:
+            print '%s: %s' % (now, message)
+    
+    def get_public_ip(self):
+        """Grab the current public IP."""
+        pub_ip = urllib2.urlopen(
+            "http://whatismyip.com/automation/n09230945.asp"
+        )
+        return pub_ip.read()
+    
+    def read_stored_ip(self):
+        if os.path.exists(self.ip_file):
+            # Try to read the previous IP address
+            with open(self.ip_file) as f:
+                prev_ip = f.read()
+                if not self.validate_ip(prev_ip):
+                    raise InvalidIPError('Invalid address found in %s' %
+                                         self.ip_file)
+            return prev_ip
+    
+    def clear_stored_ip(self):
+        if os.path.exists(self.ip_file):
+            # Remove the saved ip file
+            self.status_update('Removing the currently stored IP address.')
+            os.remove(self.ip_file)
+
+    def validate_ip(self, ip):
+        """
+        Use the socket library to validate the supplied IP. Return True if
+        valid, False if not.
+        """
+        try:
+            socket.inet_aton(ip)
+        except socket.error:
+            return False
+        return True

@@ -6,61 +6,17 @@ import urllib2
 import socket
 from datetime import datetime
 
-from update_ip.services.webfaction import WebFactionService
-
-class AlreadyRegisteredError(Exception):
-    pass
-
-class NotRegisteredError(Exception):
-    pass
-
 class InvalidServiceError(Exception):
     pass
 
 class InvalidIPError(Exception):
     pass
-    
-# Global dict used by register. Maps custom services to callback classes.
-registered_services = {}
-
-def register(service):
-    if service.name.lower() in registered_services.keys():
-        raise AlreadyRegisteredError('%s is already registered.' %
-                                     service.name)
-    registered_services[service.name.lower()] = service
-
-def unregister(service_name):
-    if not service_name.lower() in registered_services.keys():
-        raise NotRegisteredError('%s is not registered.' % service_name)
-    del registered_services[service_name.lower()]
-
-def get_service(service_name):
-    if not service_name.lower() in registered_services.keys():
-        raise NotRegisteredError('%s is not registered.' % service_name)
-    return registered_services[service_name.lower()]
-
-def get_list():
-    """
-    Returns a list of registered services.
-    """
-    return registered_services.keys()
-
-def get_all():
-    """
-    Returns the registered_services dict.
-    """
-    return registered_services
-
-# Register the built-in services
-register(WebFactionService)
 
 class IPUpdater(object):
     def __init__(self, service, ip_file=None, quiet=False):
-        if not getattr(service, 'name'):
+        if not getattr(service, 'name', None):
             raise InvalidServiceError('Please provide a valid service to use '
                                       'for updating the domains.')
-        if not service.name.lower() in get_list():
-            raise NotRegisteredError('%s is not registered.' % service.name)
         self.service = service
         self.ip_file = ip_file
         self.quiet = quiet

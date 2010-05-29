@@ -9,7 +9,7 @@ README = read('README.rst')
 setup(
     name = "update-ip",
     version = "0.1",
-    url = 'http://github.com/bkonkle/update_ip',
+    url = 'http://github.com/bkonkle/update-ip',
     license = 'BSD',
     description = "An extensible dynamic IP updater.",
     long_description = README,

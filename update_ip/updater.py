@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import with_statement
 import sys
 import os
 import urllib2
@@ -32,6 +31,14 @@ class IPUpdater(object):
         
         prev_ip = self.read_stored_ip()
         
+        # If no previous IP is found, then automatic domain detection will
+        # fail.  Domains must be given if no ip_file is provided.
+        if not prev_ip and not domains:
+            raise ValueError('No previous IP was found, and no domain '
+                             'names were provided. Automatic domain '
+                             'detection only works with a valid previous '
+                             'IP.')
+        
         # Get the public IP and compare it to the previous IP, if provided
         pub_ip = self.get_public_ip()
         if not self.validate_ip(pub_ip):
@@ -44,17 +51,10 @@ class IPUpdater(object):
             self.status_update('Public IP has changed, updating %s.' %
                                self.service.name)
             
-            # If no previous IP is found, then automatic domain detection will
-            # fail.
-            if not prev_ip and not domains:
-                raise ValueError('No previous IP was found, and no domain '
-                                 'names were provided. Automatic domain '
-                                 'detection only works with a valid previous '
-                                 'IP.')
-            
             # Update the ip_file
-            with open(self.ip_file, 'w') as f:
-                f.write(pub_ip)
+            f = open(self.ip_file, 'w')
+            f.write(pub_ip)
+            f.close()
             
             # If no specific domains were provided, use the service interface
             # to get all the domains whose current IP matches the previous
@@ -84,17 +84,19 @@ class IPUpdater(object):
         return pub_ip.read()
     
     def read_stored_ip(self):
-        if os.path.exists(self.ip_file):
+        if self.ip_file and os.path.exists(self.ip_file):
             # Try to read the previous IP address
-            with open(self.ip_file) as f:
-                prev_ip = f.read()
-                if not self.validate_ip(prev_ip):
-                    raise InvalidIPError('Invalid address found in %s' %
-                                         self.ip_file)
+            f = open(self.ip_file)
+            prev_ip = f.read()
+            f.close()
+            
+            if not self.validate_ip(prev_ip):
+                raise InvalidIPError('Invalid address found in %s' %
+                                     self.ip_file)
             return prev_ip
     
     def clear_stored_ip(self):
-        if os.path.exists(self.ip_file):
+        if self.ip_file and os.path.exists(self.ip_file):
             # Remove the saved ip file
             self.status_update('Removing the currently stored IP address.')
             os.remove(self.ip_file)

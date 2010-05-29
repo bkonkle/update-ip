@@ -5,6 +5,7 @@ import tempfile
 from optparse import OptionParser
 
 from update_ip import updater
+from update_ip import services
 
 VERSION = '0.1'
 
@@ -54,17 +55,18 @@ def main():
                          'update.\n')
         sys.exit(1)
     
-    if not args[0] in updater.get_list():
-        # TODO: Find out why the join call below doesn't work
-        sys.stderr.write('That is not a valid service name. Please choose '
-                         'from: %s\n' % ','.join(updater.get_list()))
-        sys.exit(1)
-    
     if options.domains:
         options.domains = options.domains.split(',')
     
-    service_class = updater.get_service(args[0])
-    service = service_class(options.username, options.password)
+    svc_name = 'services.%s' % args[0]
+    try:
+        __import__(svc_name)
+    except ImportError:
+        sys.stderr.write("Sorry, '%s' is not a valid service name.\n" %
+                         args[0])
+        sys.exit(1)
+    service = sys.modules[svc_name].service(options.username,
+                                            options.password)
     
     # Run the update with the options provided
     try:

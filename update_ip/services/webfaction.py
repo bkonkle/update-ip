@@ -34,3 +34,5 @@ class WebFactionService(BaseDNSService):
     def find_domains(self, ip):
         return [override['domain'] for override in self.list_domains()
                 if override['a_ip'] == ip]
+
+service = WebFactionService

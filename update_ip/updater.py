@@ -5,6 +5,13 @@ import urllib2
 import socket
 from datetime import datetime
 
+from update_ip import ip_getters
+from ip_getters.base import GetIpFailed
+from ip_getters.dyndns import DynDns
+from ip_getters.whatismyip import WhatIsMyIp
+
+IP_GETTERS=[DynDns(), WhatIsMyIp()]
+
 class InvalidServiceError(Exception):
     pass
 
@@ -78,10 +85,13 @@ class IPUpdater(object):
     
     def get_public_ip(self):
         """Grab the current public IP."""
-        pub_ip = urllib2.urlopen(
-            "http://whatismyip.com/automation/n09230945.asp"
-        )
-        return pub_ip.read()
+        for getter in IP_GETTERS:
+            try:
+                return getter.get_ip()
+            except GetIpFailed:
+                pass
+        raise GetIpFailed("None of the ip_getters returned a good ip")
+
     
     def read_stored_ip(self):
         if self.ip_file and os.path.exists(self.ip_file):

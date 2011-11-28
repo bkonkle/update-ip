@@ -1,17 +1,10 @@
 class BaseDNSService(object):
     name = 'Service Name' # Replace this with the name of the DNS service
-    
-    def create(self, domain, ip):
-        raise NotImplementedError
-    
-    def read(self, domain):
-        raise NotImplementedError
-    
+
     def update(self, domain, ip):
-        raise NotImplementedError
-    
-    def delete(self, domain):
+        '''updates the domain with the new ip'''
         raise NotImplementedError
     
     def find_domains(self, ip):
+        '''get all domains with the given ip'''
         raise NotImplementedError

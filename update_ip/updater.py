@@ -2,7 +2,6 @@
 import sys
 import os
 import urllib2
-import socket
 from datetime import datetime
 
 from update_ip import ip_getters
@@ -110,14 +109,3 @@ class IPUpdater(object):
             # Remove the saved ip file
             self.status_update('Removing the currently stored IP address.')
             os.remove(self.ip_file)
-
-    def validate_ip(self, ip):
-        """
-        Use the socket library to validate the supplied IP. Return True if
-        valid, False if not.
-        """
-        try:
-            socket.inet_aton(ip)
-        except socket.error:
-            return False
-        return True

@@ -1,10 +1,12 @@
 import re
 import urllib2
+import socket
 
 class GetIpFailed(Exception):
     pass
 
 ip_regex= re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+
 
 def get_ip_in_text( text ):
     ips= ip_regex.findall( text )
@@ -13,7 +15,12 @@ def get_ip_in_text( text ):
     if len(ips)>1:
         if ips.count(ips[0])!=len(ips): #if not all elements are equal
             raise GetIpFailed("Got multiple ips from text: "+str(ips))
-    return ips[0]
+    ip = ips[0]
+    try:
+        socket.inet_aton(ip)
+    except socket.error:
+        raise GetIpFailed("IP validation failed: "+ip)
+    return ip
 
 def get_ip_from_http( url , change_user_agent=None):
     headers= {} if not change_user_agent else {'User-Agent':change_user_agent}

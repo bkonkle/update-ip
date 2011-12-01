@@ -14,8 +14,6 @@ IP_GETTERS=[DynDns(), WhatIsMyIp()]
 class InvalidServiceError(Exception):
     pass
 
-class InvalidIPError(Exception):
-    pass
 
 class IPUpdater(object):
     def __init__(self, service, ip_file=None, quiet=False):
@@ -47,9 +45,6 @@ class IPUpdater(object):
         
         # Get the public IP and compare it to the previous IP, if provided
         pub_ip = self.get_public_ip()
-        if not self.validate_ip(pub_ip):
-            raise InvalidIPError('Invalid address returned by IP service: %s'
-                                 % pub_ip)
         if prev_ip and pub_ip == prev_ip:
             self.status_update('Public IP has not changed.')
             return
@@ -99,9 +94,6 @@ class IPUpdater(object):
             prev_ip = f.read()
             f.close()
             
-            if not self.validate_ip(prev_ip):
-                raise InvalidIPError('Invalid address found in %s' %
-                                     self.ip_file)
             return prev_ip
     
     def clear_stored_ip(self):

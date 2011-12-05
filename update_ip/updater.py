@@ -6,10 +6,11 @@ from datetime import datetime
 
 import logging
 
-from update_ip import ip_getters
+from update_ip import ip_getters, services
 from ip_getters.base import GetIpFailed
 from ip_getters.dyndns import DynDns
 from ip_getters.whatismyip import WhatIsMyIp
+from services.base import DNSServiceError
 
 IP_GETTERS=[DynDns(), WhatIsMyIp()]
 
@@ -118,4 +119,8 @@ class IPUpdater(object):
             self.log.warning('IP has changed to {0}'.format(curr_ip))
             for domain in domains:
                 self.log.info('\tUpdating {0}'.format(domain))
-                self.service.update(domain, curr_ip)
+                try:
+                    self.service.update(domain, curr_ip)
+                except DNSServiceError as e:
+                    self.log.error('\t\tfailed: '+str(e))
+                    pass    #continue to next domain

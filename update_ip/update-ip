@@ -4,7 +4,7 @@ import os
 import tempfile
 from optparse import OptionParser
 
-from update_ip import updater,services
+from update_ip import updater
 
 VERSION = '0.1'
 
@@ -57,7 +57,7 @@ def main():
     if options.domains:
         options.domains = options.domains.split(',')
     
-    svc_name = 'services.%s' % args[0]
+    svc_name = 'update_ip.services.%s' % args[0]
     try:
         __import__(svc_name)
     except ImportError:

@@ -4,6 +4,8 @@ import os
 import urllib2
 from datetime import datetime
 
+import logging
+
 from update_ip import ip_getters
 from ip_getters.base import GetIpFailed
 from ip_getters.dyndns import DynDns
@@ -11,7 +13,9 @@ from ip_getters.whatismyip import WhatIsMyIp
 
 IP_GETTERS=[DynDns(), WhatIsMyIp()]
 
-class InvalidServiceError(Exception):
+class UpdaterError(Exception):
+    pass
+class InvalidServiceError(UpdaterError):
     pass
 
 class IPCheckerCache(object):
@@ -41,7 +45,7 @@ class IPCheckerCache(object):
                 return getter.get_ip()
             except GetIpFailed:
                 pass
-        raise GetIpFailed("None of the ip_getters returned a good ip")
+        raise UpdaterError("None of the ip_getters returned a good ip")
 
     def has_changed(self):
         '''checks for new ip, stores it in cache, returns boolean'''
@@ -70,6 +74,14 @@ class IPUpdater(object):
         self.service = service
         self.cache= IPCheckerCache(ip_file, IP_GETTERS)
         self.quiet = quiet
+        
+        #setup logging
+        self.log= logging.getLogger('update_ip.updater')
+        formatter = logging.Formatter('%(asctime)s\t%(message)s')
+        hdlr = logging.StreamHandler()
+        hdlr.setFormatter(formatter)
+        self.log.addHandler(hdlr) 
+        self.log.setLevel(logging.INFO)
 
     def clear(self):
         self.cache.clear()
@@ -78,7 +90,7 @@ class IPUpdater(object):
         prev_ip= self.cache.current()
         if prev_ip is None:
             #Domains must be given if no ip_file is provided.
-            raise ValueError('No previous IP was found, and no domain '
+            raise UpdaterError('No previous IP was found, and no domain '
                             'names were provided. Automatic domain '
                             'detection only works with a valid previous '
                             'IP.')
@@ -86,7 +98,7 @@ class IPUpdater(object):
             return self.service.find_domains( prev_ip )
         except NotImplementedError:
             #service doesn't support 
-            raise ValueError('No domain names were provided, and '
+            raise UpdaterError('No domain names were provided, and '
                             "this service doesn't support the needed "
                             'checking for automatic domains to work')
 
@@ -94,26 +106,16 @@ class IPUpdater(object):
         """
         Check to see if the public IP address has changed. If so, 
         update the IP for the requested domains on the selected DNS 
-        service. Send status update messages for use in logging.
+        service.
         """
         if domains is None:
             domains= self.automatic_domains()
         if not self.cache.has_changed():    #checks for new ip
-            self.status_update('Public IP has not changed.')
+            self.log.info('IP has not changed.')
             return
         else:
             curr_ip= self.cache.current()
-            self.status_update('Public IP has changed, updating '+ self.service.name)
+            self.log.warning('IP has changed to {0}'.format(curr_ip))
             for domain in domains:
-                self.status_update('\tUpdating %s to %s.' % (domain, curr_ip))
+                self.log.info('\tUpdating {0}'.format(domain))
                 self.service.update(domain, curr_ip)
-    
-    def status_update(self, message):
-        """
-        If not silenced, print a status message prefixed by the current date
-        and time.
-        """
-        now = datetime.now()
-        now = now.strftime('%m/%d/%Y - %I:%M %p')
-        if not self.quiet:
-            print '%s: %s' % (now, message)

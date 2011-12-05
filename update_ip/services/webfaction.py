@@ -1,12 +1,12 @@
 import xmlrpclib
-from update_ip.services.base import BaseDNSService
+from update_ip.services.base import BaseDNSService, DNSServiceError
 
 class WebFactionService(BaseDNSService):
     name = 'Webfaction'
     
     def __init__(self, username, password):
         if not username or not password:
-            raise AttributeError('Username and password are required for the '
+            raise DNSServiceError('Username and password are required for the '
                                  'Webfaction service.')
         self.server = xmlrpclib.ServerProxy('https://api.webfaction.com/')
         self.session_id, self.account = self.server.login(username, password)

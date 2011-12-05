@@ -22,6 +22,7 @@ setup(
     packages = [
         'update_ip',
         'update_ip.services',
+        'update_ip.ip_getters',
     ],
     scripts=['update_ip/update-ip'],
     classifiers = [

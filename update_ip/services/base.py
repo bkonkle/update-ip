@@ -1,3 +1,6 @@
+class DNSServiceError(Exception):
+    pass
+
 class BaseDNSService(object):
     name = 'Service Name' # Replace this with the name of the DNS service
 

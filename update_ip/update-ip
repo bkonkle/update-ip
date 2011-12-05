@@ -4,8 +4,7 @@ import os
 import tempfile
 from optparse import OptionParser
 
-from update_ip import updater
-from update_ip import services
+from update_ip import updater,services
 
 VERSION = '0.1'
 
@@ -75,7 +74,7 @@ def main():
         if options.clear:
             ip_updater.clear()
         ip_updater.update(options.domains)
-    except ValueError as e:
+    except updater.UpdaterError as e:
         sys.stderr.write('Error: %s\n' % str(e))
         sys.exit(1)
 

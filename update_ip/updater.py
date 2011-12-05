@@ -11,7 +11,9 @@ from ip_getters.whatismyip import WhatIsMyIp
 
 IP_GETTERS=[DynDns(), WhatIsMyIp()]
 
-class InvalidServiceError(Exception):
+class UpdaterError(Exception):
+    pass
+class InvalidServiceError(UpdaterError):
     pass
 
 class IPCheckerCache(object):
@@ -41,7 +43,7 @@ class IPCheckerCache(object):
                 return getter.get_ip()
             except GetIpFailed:
                 pass
-        raise GetIpFailed("None of the ip_getters returned a good ip")
+        raise UpdaterError("None of the ip_getters returned a good ip")
 
     def has_changed(self):
         '''checks for new ip, stores it in cache, returns boolean'''
@@ -78,7 +80,7 @@ class IPUpdater(object):
         prev_ip= self.cache.current()
         if prev_ip is None:
             #Domains must be given if no ip_file is provided.
-            raise ValueError('No previous IP was found, and no domain '
+            raise UpdaterError('No previous IP was found, and no domain '
                             'names were provided. Automatic domain '
                             'detection only works with a valid previous '
                             'IP.')
@@ -86,7 +88,7 @@ class IPUpdater(object):
             return self.service.find_domains( prev_ip )
         except NotImplementedError:
             #service doesn't support 
-            raise ValueError('No domain names were provided, and '
+            raise UpdaterError('No domain names were provided, and '
                             "this service doesn't support the needed "
                             'checking for automatic domains to work')
 

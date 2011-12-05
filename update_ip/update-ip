@@ -73,7 +73,7 @@ def main():
         ip_updater = updater.IPUpdater(service, options.ip_file,
                                        options.quiet)
         ip_updater.update(options.domains, clear=options.clear)
-    except (updater.InvalidIPError, ValueError) as e:
+    except ValueError as e:
         sys.stderr.write('Error: %s\n' % str(e))
         sys.exit(1)
 

@@ -2,7 +2,7 @@ from update_ip.services.base import BaseDNSService, DNSServiceError
 try:
     from pynfsn import pynfsn
 except ImportError:
-    raise ImportError("This service requires the pynfsn package. You can find it on pypi or github")
+    raise Exception("This service requires the pynfsn package. You can find it on pypi or github")
 
 def split_domain(domain):
     '''splits a complete domain into a pair of (subdomain, domain)'''

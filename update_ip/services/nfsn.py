@@ -24,8 +24,10 @@ class NearlyFreeSpeechService(BaseDNSService):
     def update(self, domain, ip):
         subdomain, domain= split_domain(domain)
         dns= self.nfsn.dns( domain )
-        
-        current_records= dns.listRRs(name=subdomain, type="A")
+        try:
+            current_records= dns.listRRs(name=subdomain, type="A")
+        except Exception as e:
+            raise DNSServiceError("failed to get current records: "+str(e))
         if len(current_records)>1:
             raise DNSServiceError("Found more than one existing record with the given name: "+subdomain)
         if len(current_records)==0:
@@ -40,8 +42,10 @@ class NearlyFreeSpeechService(BaseDNSService):
             #if record_ip==self.current_ip:
             #    #"Record already up to date."
             #    return
-            dns.removeRR(name= subdomain, type=record.get("type"), data= record.get("data"))
-            dns.addRR(name=subdomain, type='A', data=ip, ttl=self.TTL)
-
+            try:
+                dns.removeRR(name= subdomain, type=record.get("type"), data= record.get("data"))
+                dns.addRR(name=subdomain, type='A', data=ip, ttl=self.TTL)
+            except Exception as e:
+                raise DNSServiceError("failed to update: "+str(e))
 
 service = NearlyFreeSpeechService

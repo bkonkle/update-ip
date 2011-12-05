@@ -1,4 +1,4 @@
-from update_ip.services.base import BaseDNSService
+from update_ip.services.base import BaseDNSService, DNSServiceError
 try:
     from pynfsn import pynfsn
 except ImportError:
@@ -16,7 +16,7 @@ class NearlyFreeSpeechService(BaseDNSService):
     
     def __init__(self, username, api_key):
         if not username or not api_key:
-            raise AttributeError('Username and api_key are required for the '
+            raise DNSServiceError('Username and api_key are required for the '
                                  'NearlyFreeSpeech service.')
         self.nfsn= pynfsn.NFSN(username, api_key)
 
@@ -27,15 +27,15 @@ class NearlyFreeSpeechService(BaseDNSService):
         
         current_records= dns.listRRs(name=subdomain, type="A")
         if len(current_records)>1:
-            raise Exception("Found more than one existing record with the given name: "+subdomain)
+            raise DNSServiceError("Found more than one existing record with the given name: "+subdomain)
         if len(current_records)==0:
-            raise Exception("Found no existing record with the given name: "+subdomain)
+            raise DNSServiceError("Found no existing record with the given name: "+subdomain)
         else:
             record= current_records[0]
             if record.get("type")!="A":
-                raise Exception('Not an "A" record')
+                raise DNSServiceError('Not an "A" record')
             if record.get("name")!=subdomain:
-                raise Exception("Got a diferent record than expected")
+                raise DNSServiceError("Got a diferent record than expected")
             record_ip= record.get("data")
             #if record_ip==self.current_ip:
             #    #"Record already up to date."

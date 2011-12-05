@@ -70,40 +70,40 @@ class IPUpdater(object):
         self.service = service
         self.cache= IPCheckerCache(ip_file, IP_GETTERS)
         self.quiet = quiet
-    
-    def update(self, domains=None, clear=False):
-        """
-        Check to see if the public IP address has changed. If so, update the
-        IP for the requested domains on the selected DNS service. Send status
-        update messages for use in logging.
-        """
-        if clear:
-            self.cache.clear()
-        
-        # If no previous IP is found, then automatic domain detection will
-        # fail.  Domains must be given if no ip_file is provided.
-        if self.cache.current is None and domains is None:
-            raise ValueError('No previous IP was found, and no domain '
-                             'names were provided. Automatic domain '
-                             'detection only works with a valid previous '
-                             'IP.')
-        
+
+    def clear(self):
+        self.cache.clear()
+
+    def automatic_domains(self):
         prev_ip= self.cache.current()
+        if prev_ip is None:
+            #Domains must be given if no ip_file is provided.
+            raise ValueError('No previous IP was found, and no domain '
+                            'names were provided. Automatic domain '
+                            'detection only works with a valid previous '
+                            'IP.')
+        try:
+            return self.service.find_domains( prev_ip )
+        except NotImplementedError:
+            #service doesn't support 
+            raise ValueError('No domain names were provided, and '
+                            "this service doesn't support the needed "
+                            'checking for automatic domains to work')
+
+    def update(self, domains=None):
+        """
+        Check to see if the public IP address has changed. If so, 
+        update the IP for the requested domains on the selected DNS 
+        service. Send status update messages for use in logging.
+        """
+        if domains is None:
+            domains= self.automatic_domains()
         if not self.cache.has_changed():    #checks for new ip
             self.status_update('Public IP has not changed.')
             return
         else:
             curr_ip= self.cache.current()
-            self.status_update('Public IP has changed, updating %s.' %
-                               self.service.name)
-
-            
-            # If no specific domains were provided, use the service interface
-            # to get all the domains whose current IP matches the previous
-            # public IP.
-            if domains is None:
-                domains = self.service.find_domains(prev_ip)
-            
+            self.status_update('Public IP has changed, updating '+ self.service.name)
             for domain in domains:
                 self.status_update('\tUpdating %s to %s.' % (domain, curr_ip))
                 self.service.update(domain, curr_ip)

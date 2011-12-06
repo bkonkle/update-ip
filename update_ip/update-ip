@@ -31,7 +31,7 @@ def main():
     
     if not args:
         sys.stderr.write('Please provide a configuration file as an '
-        "argument. If you haven't created one yet, you may generate one"
+        "argument. If you haven't created one yet, you may generate one "
         'using the switch -w\n')
         sys.exit(1)
     

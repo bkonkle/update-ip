@@ -28,7 +28,7 @@ def get_ip_from_http( url , change_user_agent=None):
     try:
         page = urllib2.urlopen( request )
         text= page.read()
-    except 'a':
+    except urllib2.URLError:
         raise GetIpFailed("Error fetching page from url: "+url)
     return get_ip_in_text( text )
 

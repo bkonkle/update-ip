@@ -4,76 +4,54 @@ import os
 import tempfile
 from optparse import OptionParser
 
-from update_ip import updater
+from update_ip import updater, configuration
 
 VERSION = '0.1'
 
 def main():
     # Parse command line options
-    usage = "usage: %prog [options] SERVICE"
+    usage = "usage: %prog [options] CFG_FILE"
     parser = OptionParser(usage=usage, version='%prog version ' + VERSION)
-    parser.add_option(
-        "-d", "--domains",
-        dest="domains",
-        default=None,
-        help="Designate specific domains to update, separated by commas",
-        metavar="DOMAINS")
-    parser.add_option(
-        "-f", "--file",
-        dest="ip_file",
-        default=os.path.join(tempfile.gettempdir(), 'public_ip'),
-        help="Designate the local file used to store your current IP address",
-        metavar="FILE")
     parser.add_option(
         "-c", "--clear",
         action="store_true",
         dest="clear",
-        help="Clear the currently stored IP address.")
+        help="Clear the currently stored IP address before running")
     parser.add_option(
-        "-u", "--username",
-        dest="username",
-        default=None,
-        help="Designate the username to use with the selected DNS service",
-        metavar="USER")
-    parser.add_option(
-        "-p", "--password",
-        dest="password",
-        default=None,
-        help="Designate the password to use with the selected DNS service",
-        metavar="PASS")
-    parser.add_option(
-        "-q", "--quiet",
+        "-w", "--wizard",
         action="store_true",
-        dest="quiet",
-        default=False,
-        help="Hide all status messages")
+        dest="wizard",
+        help="Generate a new configuration file using a wizard")
     (options, args) = parser.parse_args()
     
+    
+    if options.wizard:
+        configuration.configurationWizard()
+        sys.exit(0)
+    
     if not args:
-        sys.stderr.write('Please provide a service name to use for the '
-                         'update.\n')
+        sys.stderr.write('Please provide a configuration file as an '
+        "argument. If you haven't created one yet, you may generate one"
+        'using the switch -w\n')
         sys.exit(1)
     
-    if options.domains:
-        options.domains = options.domains.split(',')
-    
-    svc_name = 'update_ip.services.%s' % args[0]
+    cfg= configuration.Configuration.read_from_file( args[0] )
+    svc_name = 'update_ip.services.' + cfg.service_name
     try:
         __import__(svc_name)
     except ImportError:
         sys.stderr.write("Sorry, '%s' is not a valid service name.\n" %
                          args[0])
         sys.exit(1)
-    service = sys.modules[svc_name].service(options.username,
-                                            options.password)
+    service = sys.modules[svc_name].service(cfg.service_username,
+                                            cfg.service_password)
     
     # Run the update with the options provided
     try:
-        ip_updater = updater.IPUpdater(service, options.ip_file,
-                                       options.quiet)
+        ip_updater = updater.IPUpdater(service, cfg.cache_file)
         if options.clear:
             ip_updater.clear()
-        ip_updater.update(options.domains)
+        ip_updater.update(cfg.domains)
     except updater.UpdaterError as e:
         sys.stderr.write('Error: %s\n' % str(e))
         sys.exit(1)

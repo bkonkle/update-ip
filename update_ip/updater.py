@@ -68,13 +68,12 @@ class IPCheckerCache(object):
         self._writeFile()
 
 class IPUpdater(object):
-    def __init__(self, service, ip_file=None, quiet=False):
+    def __init__(self, service, ip_file=None):
         if not getattr(service, 'name', None):
             raise InvalidServiceError('Please provide a valid service to use '
                                       'for updating the domains.')
         self.service = service
         self.cache= IPCheckerCache(ip_file, IP_GETTERS)
-        self.quiet = quiet
         
         #setup logging
         self.log= logging.getLogger('update_ip.updater')

@@ -26,6 +26,7 @@ class NearlyFreeSpeechService(BaseDNSService):
         dns= self.nfsn.dns( domain )
         try:
             current_records= dns.listRRs(name=subdomain, type="A")
+            current_records= filter(lambda x:x['name']==subdomain, current_records)
         except Exception as e:
             raise DNSServiceError("failed to get current records: "+str(e))
         if len(current_records)>1:

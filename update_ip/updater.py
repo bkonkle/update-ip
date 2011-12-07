@@ -78,7 +78,7 @@ class IPUpdater(object):
         #setup logging
         self.log= logging.getLogger('update_ip.updater')
         formatter = logging.Formatter('%(asctime)s\t%(message)s')
-        hdlr = logging.StreamHandler()
+        hdlr = logging.StreamHandler( sys.stdout )
         hdlr.setFormatter(formatter)
         self.log.addHandler(hdlr) 
         self.log.setLevel(logging.INFO)

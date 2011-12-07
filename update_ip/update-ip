@@ -8,6 +8,10 @@ from update_ip import updater, configuration
 
 VERSION = '0.1'
 
+def error_exit(status_code, message):
+    sys.stderr.write(message+"\n")
+    sys.exit( status_code )
+
 def main():
     # Parse command line options
     usage = "usage: %prog [options] CFG_FILE"
@@ -30,22 +34,23 @@ def main():
         sys.exit(0)
     
     if not args:
-        sys.stderr.write('Please provide a configuration file as an '
+        error_exit(1, 'Please provide a configuration file as an '
         "argument. If you haven't created one yet, you may generate one "
-        'using the switch -w\n')
-        sys.exit(1)
+        'using the switch -w')
     
-    cfg= configuration.Configuration.read_from_file( args[0] )
-    svc_name = 'update_ip.services.' + cfg.service_name
     try:
-        __import__(svc_name)
-    except ImportError:
-        sys.stderr.write("Sorry, '%s' is not a valid service name.\n" %
-                         args[0])
-        sys.exit(1)
-    service = sys.modules[svc_name].service(cfg.service_username,
-                                            cfg.service_password)
-    
+        cfg= configuration.Configuration.read_from_file( args[0] )
+        svc_name = 'update_ip.services.' + cfg.service_name
+        try:
+            __import__(svc_name)
+        except ImportError:
+            error_exit(3, "Sorry, '%s' is not a valid service name." % args[0])
+        service = sys.modules[svc_name].service(cfg.service_username,
+                                                cfg.service_password)
+    except configuration.InvalidConfigFile as e:
+        error_exit(2, str(e))
+        
+        
     # Run the update with the options provided
     try:
         ip_updater = updater.IPUpdater(service, cfg.cache_file)
@@ -53,8 +58,7 @@ def main():
             ip_updater.clear()
         ip_updater.update(cfg.domains)
     except updater.UpdaterError as e:
-        sys.stderr.write('Error: %s\n' % str(e))
-        sys.exit(1)
+        error_exit(4, str(e))
 
 if __name__ == '__main__':
     main()

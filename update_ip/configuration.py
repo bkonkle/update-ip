@@ -1,5 +1,8 @@
 import ConfigParser
 
+class InvalidConfigFile( Exception ):
+    pass
+
 class Configuration(object):
     SECTION= "update_ip"
     OPTIONS= ('cache_file', 'service_name', 'domains', 'service_username', 'service_password')
@@ -41,10 +44,15 @@ class Configuration(object):
     @staticmethod
     def read_from_file(filename):
         '''creates a Configuration from a config file'''
-        config = ConfigParser.RawConfigParser()
-        config.read(filename)
-        file_options= dict( config.items( Configuration.SECTION ))
-        return Configuration(**file_options)
+        try:
+            config = ConfigParser.RawConfigParser()
+            config.read(filename)
+            file_options= dict( config.items( Configuration.SECTION ))
+            return Configuration(**file_options)
+        except ConfigParser.NoSectionError as e:
+            raise InvalidConfigFile(
+                "Failed to read configuration from '{0}': {1}".format(
+                    filename, e))
 
 def configurationWizard():
     def read_string( field_name, allow_empty= False ):

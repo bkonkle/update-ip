@@ -2,6 +2,8 @@ import re
 import urllib2
 import socket
 
+socket.setdefaulttimeout(5)
+
 class GetIpFailed(Exception):
     pass
 
@@ -35,4 +37,4 @@ def get_ip_from_http( url , change_user_agent=None):
 class BaseIpGetter(object):
     NAME = 'Base Ip Getter' # Replace this with the name of the IP getter
     def get_ip(self):
-        raise NotImplementedError
+        return get_ip_from_http( self.URL )

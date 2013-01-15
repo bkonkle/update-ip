@@ -2,59 +2,64 @@
 import sys
 import os
 import urllib2
+import json
 from datetime import datetime
 
 import logging
 
 from update_ip import ip_getters, services
+import ip_getters
 from ip_getters.base import GetIpFailed
-from ip_getters.dyndns import DynDns
-from ip_getters.whatismyip import WhatIsMyIp
 from services.base import DNSServiceError
 
-IP_GETTERS=[DynDns(), WhatIsMyIp()]
+IP_GETTERS= ip_getters.ALL
+DATA_DIR= os.path.join(os.path.expanduser("~"), ".update_ip")
 
 class UpdaterError(Exception):
     pass
 class InvalidServiceError(UpdaterError):
     pass
 
-class IPCheckerCache(object):
-    def __init__(self, cache_filename, getters):
+class State(object):
+    def __init__(self, state_filename, getters):
         assert all( [isinstance(x, ip_getters.base.BaseIpGetter) for x in getters])
         self.getters= getters
-        self.filename= cache_filename
+        self.filename= state_filename
         try:
             self._readFile()
         except:
             #file doesn't exist?
+            #Not in the correct format?
             self.clear()
 
     def _readFile(self):
         f= open(self.filename, 'r')
-        self.last_ip= f.read()
+        content= json.loads(f.read())
+        self.last_ip= content['last_ip']
+        self.domains_state= content['domains_state']
         f.close()
 
     def _writeFile(self):
+        content= json.dumps( {'last_ip': self.last_ip, 'domains_state': self.domains_state} )
         f= open( self.filename, 'w')
-        f.write( self.last_ip)
+        f.write( content )
         f.close()
 
     def _getNewIp(self):
-        for getter in self.getters:
-            try:
-                return getter.get_ip()
-            except GetIpFailed:
-                pass
-        raise UpdaterError("None of the ip_getters returned a good ip")
+        try:
+            return ip_getters.get_ip()
+        except GetIpFailed:
+            raise UpdaterError("Could not get ip address")
+        
 
     def has_changed(self):
-        '''checks for new ip, stores it in cache, returns boolean'''
+        '''checks for new ip, stores it in state, returns boolean'''
         current_ip= self._getNewIp()
         if current_ip==self.last_ip:
             return False
         else:
             self.last_ip= current_ip
+            self.domains_state={}
             self._writeFile()
             return True
 
@@ -63,9 +68,24 @@ class IPCheckerCache(object):
         return self.last_ip or None
 
     def clear(self):
-        '''clears cache'''
+        '''clears state'''
         self.last_ip=''
+        self.domains_state= {}
         self._writeFile()
+    
+    def is_updated( self, domain ):
+        try:
+            return self.domains_state[domain]
+        except KeyError:
+            return False
+    
+    def set_updated_state( self, domain, state ):
+        assert state in (False,True)
+        self.domains_state[domain]=state
+    
+    def get_unupdated_domains( self ):
+        return [ d for d,s in self.domains_state.iteritems() if s==False]
+        
 
 class IPUpdater(object):
     def __init__(self, service, ip_file=None):
@@ -73,7 +93,7 @@ class IPUpdater(object):
             raise InvalidServiceError('Please provide a valid service to use '
                                       'for updating the domains.')
         self.service = service
-        self.cache= IPCheckerCache(ip_file, IP_GETTERS)
+        self.state= State(ip_file, IP_GETTERS)
         
         #setup logging
         self.log= logging.getLogger('update_ip.updater')
@@ -84,11 +104,11 @@ class IPUpdater(object):
         self.log.setLevel(logging.INFO)
 
     def clear(self):
-        self.cache.clear()
+        self.state.clear()
 
     def automatic_domains(self):
-        prev_ip= self.cache.current()
-        if prev_ip is None:
+        prev_ip= self.state.current()
+        if not prev_ip:
             #Domains must be given if no ip_file is provided.
             raise UpdaterError('No previous IP was found, and no domain '
                             'names were provided. Automatic domain '
@@ -102,24 +122,33 @@ class IPUpdater(object):
                             "this service doesn't support the needed "
                             'checking for automatic domains to work')
 
+    def _update_domain( self, domain, ip ):
+        self.log.info('\tUpdating {0} to {1}'.format(domain, ip))
+        try:
+            self.service.update(domain, ip)
+            self.state.set_updated_state( domain, True )
+        except DNSServiceError as e:
+            self.log.error('\t\tfailed: '+str(e))
+            self.state.set_updated_state( domain, False )
+        
     def update(self, domains=None):
         """
         Check to see if the public IP address has changed. If so, 
         update the IP for the requested domains on the selected DNS 
         service.
         """
+        unupdated= self.state.get_unupdated_domains()
+        curr_ip= self.state.current()
+        if unupdated and curr_ip:
+            self.log.warning("Unupdated domains at start: "+str(unupdated))
+            for domain in unupdated:
+                self._update_domain(domain, curr_ip)
         if domains is None:
             domains= self.automatic_domains()
-        if not self.cache.has_changed():    #checks for new ip
+        if not self.state.has_changed():    #checks for new ip
             self.log.info('IP has not changed.')
             return
-        else:
-            curr_ip= self.cache.current()
-            self.log.warning('IP has changed to {0}'.format(curr_ip))
-            for domain in domains:
-                self.log.info('\tUpdating {0}'.format(domain))
-                try:
-                    self.service.update(domain, curr_ip)
-                except DNSServiceError as e:
-                    self.log.error('\t\tfailed: '+str(e))
-                    pass    #continue to next domain
+        curr_ip= self.state.current()
+        self.log.warning('IP has changed to {0}'.format(curr_ip))
+        for domain in domains:
+            self._update_domain(domain, curr_ip)

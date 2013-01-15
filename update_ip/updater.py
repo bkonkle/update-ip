@@ -12,7 +12,6 @@ import ip_getters
 from ip_getters.base import GetIpFailed
 from services.base import DNSServiceError
 
-IP_GETTERS= ip_getters.ALL
 DATA_DIR= os.path.join(os.path.expanduser("~"), ".update_ip")
 
 class UpdaterError(Exception):
@@ -21,9 +20,7 @@ class InvalidServiceError(UpdaterError):
     pass
 
 class State(object):
-    def __init__(self, state_filename, getters):
-        assert all( [isinstance(x, ip_getters.base.BaseIpGetter) for x in getters])
-        self.getters= getters
+    def __init__(self, state_filename): 
         self.filename= state_filename
         try:
             self._readFile()
@@ -93,7 +90,7 @@ class IPUpdater(object):
             raise InvalidServiceError('Please provide a valid service to use '
                                       'for updating the domains.')
         self.service = service
-        self.state= State(ip_file, IP_GETTERS)
+        self.state= State(ip_file)
         
         #setup logging
         self.log= logging.getLogger('update_ip.updater')

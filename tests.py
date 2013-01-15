@@ -2,13 +2,14 @@ import unittest
 import traceback
 from mock import Mock, sentinel, patch
 import update_ip
+import update_ip.ip_getters
 from update_ip.services.base import BaseDNSService
 from update_ip.updater import InvalidServiceError, UpdaterError, IPUpdater, State
 
 
 class IPGettersTestCase(unittest.TestCase):
     def setUp(self):
-        self.ip_getters= update_ip.updater.IP_GETTERS
+        self.ip_getters= update_ip.ip_getters.ALL
 
     def test_get_ip_on_all_getters(self):
         ips=[]

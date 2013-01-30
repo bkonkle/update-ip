@@ -32,6 +32,8 @@ def get_ip_from_http( url , change_user_agent=None):
         text= page.read()
     except urllib2.URLError:
         raise GetIpFailed("Error fetching page from url: "+url)
+    except socket.timeout:
+        raise GetIpFailed("Timeout fetching page from url: "+url)
     return get_ip_in_text( text )
 
 class BaseIpGetter(object):

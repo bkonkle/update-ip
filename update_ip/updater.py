@@ -79,6 +79,7 @@ class State(object):
     def set_updated_state( self, domain, state ):
         assert state in (False,True)
         self.domains_state[domain]=state
+        self._writeFile()
     
     def get_unupdated_domains( self ):
         return [ d for d,s in self.domains_state.iteritems() if s==False]

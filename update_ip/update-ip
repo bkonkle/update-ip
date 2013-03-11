@@ -6,7 +6,7 @@ from optparse import OptionParser
 
 from update_ip import updater, configuration
 
-VERSION = '0.1'
+VERSION = '0.2'
 
 def error_exit(status_code, message):
     sys.stderr.write(message+"\n")

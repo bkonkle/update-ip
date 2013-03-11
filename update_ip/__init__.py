@@ -1,4 +1,4 @@
-VERSION = '0.2'
+VERSION = '0.2.1'
 IMPORTANT_INFO=25
 
 import logging

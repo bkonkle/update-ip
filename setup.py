@@ -12,7 +12,7 @@ README = read('README')
  
 setup(
     name = "update-ip",
-    version = "0.2",
+    version = "0.2.1",
     url = 'http://github.com/bkonkle/update-ip',
     license = 'BSD',
     description = "An extensible dynamic IP updater.",

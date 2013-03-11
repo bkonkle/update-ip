@@ -4,13 +4,24 @@ import os
 import tempfile
 from optparse import OptionParser
 
-from update_ip import updater, configuration
-
-VERSION = '0.2'
+from update_ip import updater, configuration, VERSION, log
+import logging
 
 def error_exit(status_code, message):
     sys.stderr.write(message+"\n")
     sys.exit( status_code )
+
+def setup_logging():
+    formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
+    out_hdlr = logging.StreamHandler( sys.stdout )
+    err_hdlr = logging.StreamHandler( sys.stderr )
+    out_hdlr.setFormatter(formatter)
+    err_hdlr.setFormatter(formatter)
+    out_hdlr.setLevel(logging.INFO)
+    err_hdlr.setLevel(logging.WARNING)
+    log.addHandler(out_hdlr) 
+    log.addHandler(err_hdlr) 
+
 
 def main():
     # Parse command line options
@@ -50,7 +61,8 @@ def main():
     except configuration.InvalidConfigFile as e:
         error_exit(2, str(e))
         
-        
+    setup_logging()
+    
     # Run the update with the options provided
     try:
         ip_updater = updater.IPUpdater(service, cfg.cache_file)

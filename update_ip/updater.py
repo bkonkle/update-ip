@@ -5,12 +5,16 @@ import urllib2
 import json
 from datetime import datetime
 
-import logging
 
-from update_ip import ip_getters, services
+from update_ip import ip_getters, services, IMPORTANT_INFO
 import ip_getters
 from ip_getters.base import GetIpFailed
 from services.base import DNSServiceError
+
+import logging
+#setup logging
+log= logging.getLogger('update_ip.updater')
+
 
 DATA_DIR= os.path.join(os.path.expanduser("~"), ".update_ip")
 
@@ -92,14 +96,6 @@ class IPUpdater(object):
                                       'for updating the domains.')
         self.service = service
         self.state= State(ip_file)
-        
-        #setup logging
-        self.log= logging.getLogger('update_ip.updater')
-        formatter = logging.Formatter('%(asctime)s\t%(message)s')
-        hdlr = logging.StreamHandler( sys.stdout )
-        hdlr.setFormatter(formatter)
-        self.log.addHandler(hdlr) 
-        self.log.setLevel(logging.INFO)
 
     def clear(self):
         self.state.clear()
@@ -121,12 +117,12 @@ class IPUpdater(object):
                             'checking for automatic domains to work')
 
     def _update_domain( self, domain, ip ):
-        self.log.info('\tUpdating {0} to {1}'.format(domain, ip))
+        log.info('\tUpdating {0} to {1}'.format(domain, ip))
         try:
             self.service.update(domain, ip)
             self.state.set_updated_state( domain, True )
         except DNSServiceError as e:
-            self.log.error('\t\tfailed: '+str(e))
+            log.error('\t\tfailed: '+str(e))
             self.state.set_updated_state( domain, False )
         
     def update(self, domains=None):
@@ -138,15 +134,15 @@ class IPUpdater(object):
         unupdated= self.state.get_unupdated_domains()
         curr_ip= self.state.current()
         if unupdated and curr_ip:
-            self.log.warning("Unupdated domains at start: "+str(unupdated))
+            log.warning("Unupdated domains at start: "+str(unupdated))
             for domain in unupdated:
                 self._update_domain(domain, curr_ip)
         if domains is None:
             domains= self.automatic_domains()
         if not self.state.has_changed():    #checks for new ip
-            self.log.info('IP has not changed.')
+            log.info('IP has not changed.')
             return
         curr_ip= self.state.current()
-        self.log.warning('IP has changed to {0}'.format(curr_ip))
+        log.log(IMPORTANT_INFO, 'IP has changed to {0}'.format(curr_ip))
         for domain in domains:
             self._update_domain(domain, curr_ip)

@@ -50,6 +50,7 @@ class State(object):
         try:
             return ip_getters.get_ip()
         except GetIpFailed:
+            log.critical("Could not get ip address")
             raise UpdaterError("Could not get ip address")
         
 
@@ -104,6 +105,7 @@ class IPUpdater(object):
         prev_ip= self.state.current()
         if not prev_ip:
             #Domains must be given if no ip_file is provided.
+            log.critical("Automatic domain detection error")
             raise UpdaterError('No previous IP was found, and no domain '
                             'names were provided. Automatic domain '
                             'detection only works with a valid previous '
@@ -112,6 +114,7 @@ class IPUpdater(object):
             return self.service.find_domains( prev_ip )
         except NotImplementedError:
             #service doesn't support 
+            log.critical("Automatic domain detection error")
             raise UpdaterError('No domain names were provided, and '
                             "this service doesn't support the needed "
                             'checking for automatic domains to work')

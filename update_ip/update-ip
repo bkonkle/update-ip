@@ -5,6 +5,7 @@ import tempfile
 from optparse import OptionParser
 
 from update_ip import updater, configuration, VERSION, log
+from update_ip.services import services_by_name
 import logging
 
 def error_exit(status_code, message):
@@ -51,13 +52,11 @@ def main():
     
     try:
         cfg= configuration.Configuration.read_from_file( args[0] )
-        svc_name = 'update_ip.services.' + cfg.service_name
+        svc_name = cfg.service_name
         try:
-            __import__(svc_name)
-        except ImportError:
-            error_exit(3, "Sorry, '%s' is not a valid service name." % args[0])
-        service = sys.modules[svc_name].service(cfg.service_username,
-                                                cfg.service_password)
+            service= services_by_name[svc_name](**cfg.__dict__)
+        except KeyError:
+            error_exit(3, "Sorry, '%s' is not a valid service name. Available services: " % (args[0])+ "\n  "+"\n  ".join(services_by_name.keys()))
     except configuration.InvalidConfigFile as e:
         error_exit(2, str(e))
         

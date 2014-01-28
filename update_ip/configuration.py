@@ -1,25 +1,20 @@
 import ConfigParser
+import inspect
+from update_ip.services import services_by_name
 
 class InvalidConfigFile( Exception ):
     pass
 
 class Configuration(object):
     SECTION= "update_ip"
-    OPTIONS= ('cache_file', 'service_name', 'domains', 'service_username', 'service_password')
-    OPTIONS_DESCRIPTIONS= ('File where to cache last ip', 'Name of the updater service', 'Domains (comma-separated)', 'username for updater service', 'password for updater service')
+    OPTIONS= ('cache_file', 'domains', 'service_name')
+    OPTIONS_DESCRIPTIONS= ('File where to cache last ip', 'Domains (comma-separated)', 'Name of the updater service')
     REQUIRED_OPTIONS= OPTIONS[:2]
     def __init__(self, **kwargs):
         options= {}
         for k,v in kwargs.items():
             #read given options
-            if k in Configuration.OPTIONS:
-                options[k]=v
-            else:
-                print "ignoring invalid option:",k,"=",v
-        for k in Configuration.REQUIRED_OPTIONS:
-            #validate all required options are present
-            if not k in options:
-                raise Exception("Missing mandatory option: "+k)
+            options[k]=v
         for k in set(Configuration.OPTIONS).difference(kwargs.keys()):
             #set options that were not given to None
             options[k]= None
@@ -62,6 +57,7 @@ def configurationWizard():
             if x or allow_empty:
                 return x or None
     print "Generating a new configuration file"
+    print "Available services:"+"\n  "+"\n  ".join(services_by_name.keys())
     filename= read_string("Configuration filename to write")
     options={}
     for k, desc in zip( Configuration.OPTIONS, Configuration.OPTIONS_DESCRIPTIONS):
@@ -69,6 +65,20 @@ def configurationWizard():
         v= read_string( "{0} ({1})".format(desc,k), allow_empty= not required)
         options[k]= v
     
+    svc_name = options['service_name']
+    try:
+        service= services_by_name[svc_name]
+    except KeyError:
+        print "Sorry, '%s' is not a valid service name" % (svc_name)
+        exit(3)
+    
+    print "Service parameters:"
+    args, varargs, keywords, defaults= inspect.getargspec(service.__init__)
+    for a in args:
+        if a!='self':
+            v= read_string( a, allow_empty= False)
+            options[a]= v
+        
     print "Generating and writing configuration to file: ", filename
     cfg= Configuration( **options )
     cfg.write_to_file(filename)

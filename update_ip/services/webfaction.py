@@ -4,7 +4,7 @@ from update_ip.services.base import BaseDNSService, DNSServiceError
 class WebFactionService(BaseDNSService):
     name = 'Webfaction'
     
-    def __init__(self, username, password):
+    def __init__(self, username, password, **kwargs):
         if not username or not password:
             raise DNSServiceError('Username and password are required for the '
                                  'Webfaction service.')

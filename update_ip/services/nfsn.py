@@ -19,7 +19,7 @@ class NearlyFreeSpeechService(BaseDNSService):
     name = 'NearlyfreeSpeech'
     TTL= 300    #5 minutes of dns record ttl
     
-    def __init__(self, username, api_key):
+    def __init__(self, username, api_key, **kwargs):
         if not username or not api_key:
             raise DNSServiceError('Username and api_key are required for the '
                                  'NearlyFreeSpeech service.')

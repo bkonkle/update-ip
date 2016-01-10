@@ -1,12 +1,24 @@
 import base
 import getters
 import logging
+import time
 log= logging.getLogger('update_ip.ip_getters')
 
 ALL_CLASSES= base.BaseIpGetter.__subclasses__()
 ALL= [x() for x in ALL_CLASSES]
 
-def get_ip():
+def get_ip(tries=3, try_delay=15):
+    tries= 3
+    for i in range(tries):
+        try:
+            return get_ip_once()
+        except base.GetIpFailed:
+            if i<tries-1:
+                log.debug("Ip getting try {0} failed. Sleeping {1} seconds".format(i, try_delay))
+                time.sleep(try_delay)
+    raise base.GetIpFailed("Failed to get IP (after {0} tries)".format(tries))
+
+def get_ip_once():
     import random
     getters= ALL[:]
     random.shuffle( getters ) #for load balancing purposes

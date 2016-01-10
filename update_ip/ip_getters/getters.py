@@ -6,14 +6,16 @@ class DynDns(BaseIpGetter):
     URL= "http://checkip.dyndns.org"
 
 
+'''
 class IpChicken(BaseIpGetter):
     NAME= "ipchicken.com"
     URL= "http://ipchicken.com/"
+'''
 
 class IfconfigMe(BaseIpGetter):
     NAME= "ifconfig.me"
     URL= "http://ifconfig.me/ip"
-    
+
 '''
 class JsonIp(BaseIpGetter):
     NAME="jsonip.com"

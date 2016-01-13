@@ -8,7 +8,10 @@ except ImportError:
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
  
-README = read('README.md')
+try:
+    README = read('README.md')
+except Exception:
+    README=""
  
 setup(
     name = "update-ip",

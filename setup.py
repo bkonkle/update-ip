@@ -39,5 +39,5 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: System :: Systems Administration',
         'Topic :: Utilities',
-    ]
+    ], install_requires=['tld']
 )

@@ -8,20 +8,22 @@ from update_ip import updater, configuration, VERSION, log
 from update_ip.services import services_by_name
 import logging
 
+
 def error_exit(status_code, message):
-    sys.stderr.write(message+"\n")
-    sys.exit( status_code )
+    sys.stderr.write(message + "\n")
+    sys.exit(status_code)
+
 
 def setup_logging():
     formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
-    out_hdlr = logging.StreamHandler( sys.stdout )
-    err_hdlr = logging.StreamHandler( sys.stderr )
+    out_hdlr = logging.StreamHandler(sys.stdout)
+    err_hdlr = logging.StreamHandler(sys.stderr)
     out_hdlr.setFormatter(formatter)
     err_hdlr.setFormatter(formatter)
     out_hdlr.setLevel(logging.INFO)
     err_hdlr.setLevel(logging.WARNING)
-    log.addHandler(out_hdlr) 
-    log.addHandler(err_hdlr) 
+    log.addHandler(out_hdlr)
+    log.addHandler(err_hdlr)
 
 
 def main():
@@ -39,19 +41,18 @@ def main():
         dest="wizard",
         help="Generate a new configuration file using a wizard")
     (options, args) = parser.parse_args()
-    
-    
+
     if options.wizard:
         configuration.configurationWizard()
         sys.exit(0)
-    
+
     if not args:
         error_exit(1, 'Please provide a configuration file as an '
-        "argument. If you haven't created one yet, you may generate one "
-        'using the switch -w')
-    
+                      "argument. If you haven't created one yet, you may generate one "
+                      'using the switch -w')
+
     try:
-        cfg= configuration.Configuration.read_from_file( args[0] )
+        cfg = configuration.Configuration.read_from_file(args[0])
         svc_name = cfg.service_name
         try:
             service_class= services_by_name[svc_name]
@@ -59,10 +60,10 @@ def main():
             error_exit(3, "Sorry, '%s' is not a valid service name. Available services: " % (svc_name)+ "\n  "+"\n  ".join(services_by_name.keys()))
     except configuration.InvalidConfigFile as e:
         error_exit(2, str(e))
-        
-    service= service_class(**cfg.__dict__)
+
+    service = service_class(**cfg.__dict__)
     setup_logging()
-    
+
     # Run the update with the options provided
     try:
         ip_updater = updater.IPUpdater(service, cfg.cache_file)
@@ -71,6 +72,7 @@ def main():
         ip_updater.update(cfg.domains)
     except updater.UpdaterError as e:
         error_exit(4, str(e))
+
 
 if __name__ == '__main__':
     main()

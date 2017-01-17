@@ -1,8 +1,6 @@
 import json
 import urllib2
 
-import tld
-
 from update_ip.services.base import BaseDNSService, DNSServiceError
 
 
@@ -54,7 +52,7 @@ class CloudflareService(BaseDNSService):
         """Parse the given domain and extract the TLD
         :param domain: Full domain
         """
-        self.domain = tld.get_tld('http://' + domain)  # Convert from "any.sub.domain.tld" to "domain.tld"
+        self.domain = ".".join(domain.split(".")[-2:])  # Convert from "any.sub.domain.tld" to "domain.tld"
         self.dns_record = domain
 
     @staticmethod

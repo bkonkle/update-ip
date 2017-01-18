@@ -9,19 +9,22 @@ class GetIpFailed(Exception):
 
 ip_regex= re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 
+def _is_valid_ip(ip_str):
+    try:
+        socket.inet_aton(ip_str)
+        return True
+    except socket.error:
+        return False
+
 
 def get_ip_in_text( text ):
     ips= ip_regex.findall( text )
-    if len(ips)==0:
+    valid_ips = filter(_is_valid_ip, ips)
+    if len(valid_ips)==0:
         raise GetIpFailed("Could not get ip from text")
-    if len(ips)>1:
-        if ips.count(ips[0])!=len(ips): #if not all elements are equal
-            raise GetIpFailed("Got multiple ips from text: "+str(ips))
-    ip = ips[0]
-    try:
-        socket.inet_aton(ip)
-    except socket.error:
-        raise GetIpFailed("IP validation failed: "+ip)
+    if len(set(valid_ips)) > 1:
+        raise GetIpFailed("Got multiple ips from text: "+str(valid_ips))
+    ip = valid_ips[0]
     return ip
 
 def get_ip_from_http( url , change_user_agent=None):
